@@ -1,69 +1,30 @@
-from flask import Flask, render_template, request, jsonify
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
-from PIL import Image
-import numpy as np
 import os
+import gdown
+from tensorflow.keras.models import load_model
 
+# Path where you want to save the model
+model_path = "model.h5"
 
-app = Flask(__name__)
-# Load your .h5 model
-model = load_model('model.h5')  # Verify this path exists
+# Google Drive file ID from your link
+gdrive_id = "1tNTnMZh1ReAqkqeWMWufqIkfoH49p-hg"  # Replace with your actual ID
 
-# Class names - must match your model's training classes
-CLASS_NAMES = ['crack', 'scratch', 'corrosion', 'normal']  # Update if different
+# Google Drive download URL
+url = f"https://drive.google.com/uc?id={gdrive_id}"
 
-@app.route('/')
-def home():
-    return render_template('index.html')
+# Function to download the model if not already present
+def download_model():
+    if not os.path.exists(model_path):
+        print("Model not found locally. Downloading model from Google Drive...")
+        try:
+            gdown.download(url, model_path, quiet=False)
+            print("Model downloaded successfully.")
+        except Exception as e:
+            print(f"Error downloading the model: {e}")
+            raise
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    try:
-        print("\n--- New Prediction Request ---")
-        
-        # 1. Check file
-        if 'file' not in request.files:
-            print("Error: No file uploaded")
-            return jsonify({'error': 'No file uploaded'}), 400
-            
-        file = request.files['file']
-        if file.filename == '':
-            print("Error: Empty filename")
-            return jsonify({'error': 'No file selected'}), 400
-        
-        # 2. Process image
-        print(f"Processing: {file.filename}")
-        img = Image.open(file.stream).convert('RGB')
-        img = img.resize((256, 256))
-        img_array = np.array(img) / 255.0
-        print(f"Image shape: {img_array.shape}")  # Should be (256,256,3)
-        
-        # 3. Predict
-        img_array = np.expand_dims(img_array, axis=0)
-        print(f"Model input shape: {img_array.shape}")  # Should be (1,256,256,3)
-        
-        # Verify model and input match
-        print(f"Model expects: {model.input_shape}")
-        print(f"Actual input: {img_array.shape}")
-        
-        pred = model.predict(img_array)
-        print("Raw predictions:", pred)
-        
-        class_idx = np.argmax(pred[0])
-        confidence = float(np.max(pred[0]))
-        predicted_class = CLASS_NAMES[class_idx]
-        print(f"Predicted: {CLASS_NAMES[class_idx]} ({confidence:.2%})")
+# Ensure the model is downloaded before loading it
+download_model()
 
-        return jsonify({
-    'prediction': CLASS_NAMES[class_idx],
-    'confidence': confidence
-})
-
-        
-    except Exception as e:
-        print(f"Critical Error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+# Load the model
+model = load_model(model_path)
+print("Model loaded successfully.")
