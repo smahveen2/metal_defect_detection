@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Metal Defect Detection</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        #result { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        #preview { max-width: 100%; margin-top: 15px; }
+        .confidence-bar { height: 20px; background: #eee; margin-top: 10px; }
+        .confidence-fill { height: 100%; background: #4CAF50; }
+    </style>
+</head>
+<body>
+    <h1>Metal Defect Detection</h1>
+    <p>Upload an image of a metal surface to detect defects</p>
+    
+    <form id="uploadForm">
+        <input type="file" id="imageUpload" accept="image/*" required>
+        <button type="submit">Analyze</button>
+    </form>
+    
+    <div id="result" style="display: none;">
+        <h3>Result: <span id="predictionResult"></span></h3>
+        <p>Confidence: <span id="confidenceValue"></span>%</p>
+        <div class="confidence-bar">
+            <div id="confidenceFill" class="confidence-fill"></div>
+        </div>
+        <img id="preview" src="" alt="Uploaded Image">
+    </div>
+    
+    <h2>Sample Defects</h2>
+    <div style="display: flex; gap: 10px;">
+        <img src="static/test_images/crack.jpg" width="150" title="Crack">
+        <img src="static/test_images/scratch.jpg" width="150" title="Scratch">
+        <img src="static/test_images/corrosion.jpg" width="150" title="Corrosion">
+    </div>
+    
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('imageUpload');
+            const resultDiv = document.getElementById('result');
+            
+            // Show preview
+            const preview = document.getElementById('preview');
+            preview.src = URL.createObjectURL(fileInput.files[0]);
+            
+            // Show loading state
+            resultDiv.style.display = 'block';
+            document.getElementById('predictionResult').textContent = 'Analyzing...';
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                // Display results
+                document.getElementById('predictionResult').textContent = data.prediction;
+                const confidence = (data.confidence * 100).toFixed(2);
+                document.getElementById('confidenceValue').textContent = confidence;
+                document.getElementById('confidenceFill').style.width = confidence + '%';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('predictionResult').textContent = 'Error analyzing image';
+            }
+        });
+    </script>
+</body>
+</html>
