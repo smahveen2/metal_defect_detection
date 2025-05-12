@@ -16,7 +16,7 @@ def download_model():
     if not os.path.exists(model_path):
         print("Model not found locally. Downloading model from Google Drive...")
         try:
-            gdown.download(url, model_path, quiet=False)
+            gdown.download(url, model_path, quiet=False, fuzzy=True)
             print("Model downloaded successfully.")
         except Exception as e:
             print(f"Error downloading the model: {e}")
